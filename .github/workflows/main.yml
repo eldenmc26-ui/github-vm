@@ -1,4 +1,4 @@
-name: MacOS-Tailscale-Build
+name: MacOS-Tailscale
 
 on:
   workflow_dispatch:
@@ -13,21 +13,28 @@ jobs:
           brew update
           brew install tailscale
 
-      - name: Start Tailscale
-        env:
-          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+      - name: Locate Tailscale binary
+        id: ts
+        run: |
+          echo "Checking tailscale path..."
+          which tailscale || true
+          find /usr -name tailscale 2>/dev/null || true
+          find /opt -name tailscale 2>/dev/null || true
+
+      - name: Start Tailscale daemon
         run: |
           sudo tailscaled --tun=userspace-networking &
           sleep 5
-          sudo tailscale up --authkey=$TAILSCALE_AUTHKEY --hostname=github-mac-vnc
 
-      - name: Show IP
+      - name: Connect Tailscale
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
         run: |
-          /usr/bin/tailscale ip -4
+          tailscale up --authkey=$TAILSCALE_AUTHKEY --hostname=github-mac-vnc
 
-      - name: Enable SSH (system only)
+      - name: Show IP (SAFE)
         run: |
-          sudo systemsetup -setremotelogin on
+          tailscale ip -4 || true
 
       - name: Keep alive
         run: |
