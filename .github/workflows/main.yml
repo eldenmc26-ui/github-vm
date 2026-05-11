@@ -8,22 +8,26 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - name: Install Tailscale
+      - name: Install Tailscale (manual safe install)
         run: |
-          curl -fsSL https://tailscale.com/install.sh | sh
+          curl -L -o tailscale.pkg https://pkgs.tailscale.com/stable/tailscale-macos-universal.pkg
+          sudo installer -pkg tailscale.pkg -target /
 
-      - name: Find Tailscale binary
+      - name: Verify install
         run: |
+          ls -la /Applications/Tailscale.app || true
+          ls -la /usr/sbin/tailscaled || true
           which tailscale || true
-          ls -la /usr/local/bin || true
-          ls -la /opt/homebrew/bin || true
 
-      - name: Start Tailscale
+      - name: Start Tailscale daemon
+        run: |
+          sudo /usr/sbin/tailscaled --tun=userspace-networking &
+
+      - name: Connect to Tailscale
         env:
           TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
         run: |
-          sudo /usr/local/bin/tailscale up --authkey=$TAILSCALE_AUTHKEY --hostname=github-mac-vnc || \
-          sudo /opt/homebrew/bin/tailscale up --authkey=$TAILSCALE_AUTHKEY --hostname=github-mac-vnc
+          sudo /usr/bin/tailscale up --authkey=$TAILSCALE_AUTHKEY --hostname=github-mac-vnc
 
       - name: Enable Remote Login (SSH)
         run: |
@@ -37,11 +41,11 @@ jobs:
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
             -restart -agent
 
-      - name: Show Tailscale IP
+      - name: Show IP
         run: |
-          /usr/local/bin/tailscale ip -4 || /opt/homebrew/bin/tailscale ip -4 || true
+          /usr/bin/tailscale ip -4 || true
 
-      - name: Keep VM alive
+      - name: Keep alive
         run: |
-          echo "Mac ready on Tailscale network"
+          echo "READY"
           sleep 14400
