@@ -12,11 +12,18 @@ jobs:
         run: |
           curl -fsSL https://tailscale.com/install.sh | sh
 
+      - name: Find Tailscale binary
+        run: |
+          which tailscale || true
+          ls -la /usr/local/bin || true
+          ls -la /opt/homebrew/bin || true
+
       - name: Start Tailscale
         env:
           TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
         run: |
-          sudo tailscale up --authkey=$TAILSCALE_AUTHKEY --hostname=github-mac-vnc
+          sudo /usr/local/bin/tailscale up --authkey=$TAILSCALE_AUTHKEY --hostname=github-mac-vnc || \
+          sudo /opt/homebrew/bin/tailscale up --authkey=$TAILSCALE_AUTHKEY --hostname=github-mac-vnc
 
       - name: Enable Remote Login (SSH)
         run: |
@@ -32,7 +39,7 @@ jobs:
 
       - name: Show Tailscale IP
         run: |
-          tailscale ip -4 || true
+          /usr/local/bin/tailscale ip -4 || /opt/homebrew/bin/tailscale ip -4 || true
 
       - name: Keep VM alive
         run: |
