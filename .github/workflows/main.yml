@@ -8,21 +8,18 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - name: Download Tailscale
+      - name: Install Tailscale (via brew - stable on GitHub)
         run: |
-          curl -fL --retry 3 --retry-delay 2 \
-            -o tailscale.pkg \
-            https://pkgs.tailscale.com/stable/tailscale-macos-universal.pkg
-
-      - name: Install Tailscale
-        run: |
-          sudo installer -pkg tailscale.pkg -target /
+          brew update
+          brew install tailscale
 
       - name: Start Tailscale
         env:
           TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
         run: |
-          sudo /usr/bin/tailscale up --authkey=$TAILSCALE_AUTHKEY --hostname=github-mac-vnc
+          sudo tailscaled --tun=userspace-networking &
+          sleep 5
+          sudo tailscale up --authkey=$TAILSCALE_AUTHKEY --hostname=github-mac-vnc
 
       - name: Enable SSH
         run: |
@@ -36,9 +33,9 @@ jobs:
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
             -restart -agent
 
-      - name: Show IP
+      - name: Show Tailscale IP
         run: |
-          /usr/bin/tailscale ip -4 || true
+          tailscale ip -4 || true
 
       - name: Keep Alive
         run: |
