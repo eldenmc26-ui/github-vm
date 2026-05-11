@@ -1,4 +1,4 @@
-name: MacOS-VNC-Tailscale
+name: MacOS-Tailscale-SSH
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - name: Install Tailscale (via brew - stable on GitHub)
+      - name: Install Tailscale
         run: |
           brew update
           brew install tailscale
@@ -25,18 +25,26 @@ jobs:
         run: |
           sudo systemsetup -setremotelogin on
 
-      - name: Enable VNC
+      - name: Create SSH key access
         run: |
-          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
-            -activate -configure -access -on -users runneradmin -privs -all
+          mkdir -p /Users/runneradmin/.ssh
+          ssh-keygen -t rsa -N "" -f /Users/runneradmin/.ssh/id_rsa
 
-          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
-            -restart -agent
+          cat /Users/runneradmin/.ssh/id_rsa.pub >> /Users/runneradmin/.ssh/authorized_keys
 
-      - name: Show Tailscale IP
+          chmod 700 /Users/runneradmin/.ssh
+          chmod 600 /Users/runneradmin/.ssh/authorized_keys
+
+      - name: Show connection info
         run: |
-          tailscale ip -4 || true
+          echo "=============================="
+          echo "TAILSCALE IP:"
+          /usr/bin/tailscale ip -4 || true
+          echo ""
+          echo "SSH COMMAND:"
+          echo "ssh -i ~/.ssh/id_rsa runneradmin@100.x.x.x"
+          echo "=============================="
 
-      - name: Keep Alive
+      - name: Keep alive
         run: |
           sleep 14400
