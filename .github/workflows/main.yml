@@ -1,4 +1,4 @@
-name: MacOS-Tailscale-SSH
+name: MacOS-Tailscale-Build
 
 on:
   workflow_dispatch:
@@ -21,29 +21,13 @@ jobs:
           sleep 5
           sudo tailscale up --authkey=$TAILSCALE_AUTHKEY --hostname=github-mac-vnc
 
-      - name: Enable SSH
+      - name: Show IP
+        run: |
+          /usr/bin/tailscale ip -4
+
+      - name: Enable SSH (system only)
         run: |
           sudo systemsetup -setremotelogin on
-
-      - name: Create SSH key access
-        run: |
-          mkdir -p /Users/runneradmin/.ssh
-          ssh-keygen -t rsa -N "" -f /Users/runneradmin/.ssh/id_rsa
-
-          cat /Users/runneradmin/.ssh/id_rsa.pub >> /Users/runneradmin/.ssh/authorized_keys
-
-          chmod 700 /Users/runneradmin/.ssh
-          chmod 600 /Users/runneradmin/.ssh/authorized_keys
-
-      - name: Show connection info
-        run: |
-          echo "=============================="
-          echo "TAILSCALE IP:"
-          /usr/bin/tailscale ip -4 || true
-          echo ""
-          echo "SSH COMMAND:"
-          echo "ssh -i ~/.ssh/id_rsa runneradmin@100.x.x.x"
-          echo "=============================="
 
       - name: Keep alive
         run: |
