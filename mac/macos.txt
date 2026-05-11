@@ -1,24 +1,36 @@
-name: MacRDP
-on: 
+name: MacOS-VNC-Tailscale
+
+on:
   workflow_dispatch:
+
 jobs:
   build:
-    name: MacRDP
     runs-on: macos-latest
-    
-    steps:                 
-    - name: Enabling Remote Access
-      env:
-        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
-      run: |
-          curl -s -o start.sh -L "https://raw.githubusercontent.com/JohnnyNetsec/github-vm/main/mac/start.sh"
-          chmod +x start.sh
-          bash start.sh "$NGROK_AUTH_TOKEN"
-          
-    - name: Log In Details To VNC Server
-      run: |
-         chmod +x login.sh
-         bash login.sh
-         
-    - name: MacOS System running...
-      uses: mxschmitt/action-tmate@v2
+
+    steps:
+      - name: Install Tailscale
+        run: |
+          curl -fsSL https://tailscale.com/install.sh | sh
+
+      - name: Connect to Tailscale
+        env:
+          TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+        run: |
+          sudo tailscale up --authkey=$TAILSCALE_AUTHKEY --hostname=github-mac-vnc
+
+      - name: Enable Remote Login (SSH)
+        run: |
+          sudo systemsetup -setremotelogin on
+
+      - name: Enable VNC (Screen Sharing)
+        run: |
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
+          -activate -configure -access -on -users runneradmin -privs -all
+
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
+          -restart -agent
+
+      - name: Keep VM alive
+        run: |
+          echo "Mac ready on Tailscale network"
+          sleep 14400
