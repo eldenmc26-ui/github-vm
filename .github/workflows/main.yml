@@ -8,32 +8,27 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - name: Install Tailscale (manual safe install)
+      - name: Download Tailscale
         run: |
-          curl -L -o tailscale.pkg https://pkgs.tailscale.com/stable/tailscale-macos-universal.pkg
+          curl -fL --retry 3 --retry-delay 2 \
+            -o tailscale.pkg \
+            https://pkgs.tailscale.com/stable/tailscale-macos-universal.pkg
+
+      - name: Install Tailscale
+        run: |
           sudo installer -pkg tailscale.pkg -target /
 
-      - name: Verify install
-        run: |
-          ls -la /Applications/Tailscale.app || true
-          ls -la /usr/sbin/tailscaled || true
-          which tailscale || true
-
-      - name: Start Tailscale daemon
-        run: |
-          sudo /usr/sbin/tailscaled --tun=userspace-networking &
-
-      - name: Connect to Tailscale
+      - name: Start Tailscale
         env:
           TAILSCALE_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
         run: |
           sudo /usr/bin/tailscale up --authkey=$TAILSCALE_AUTHKEY --hostname=github-mac-vnc
 
-      - name: Enable Remote Login (SSH)
+      - name: Enable SSH
         run: |
           sudo systemsetup -setremotelogin on
 
-      - name: Enable VNC (Screen Sharing)
+      - name: Enable VNC
         run: |
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
             -activate -configure -access -on -users runneradmin -privs -all
@@ -45,7 +40,6 @@ jobs:
         run: |
           /usr/bin/tailscale ip -4 || true
 
-      - name: Keep alive
+      - name: Keep Alive
         run: |
-          echo "READY"
           sleep 14400
